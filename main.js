@@ -14,9 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
 });
 
+function getSelectedModel() {
+  const select = document.getElementById('model-select');
+  if (!select) return 'anthropic/claude-sonnet-5';
+  if (select.value === 'custom') {
+    const customVal = document.getElementById('custom-model-input')?.value.trim();
+    return customVal || 'anthropic/claude-sonnet-5';
+  }
+  return select.value;
+}
+
 function loadSavedKeys() {
   const savedTwelve = localStorage.getItem('genai_twelvedata_key');
   const savedOpenRouter = localStorage.getItem('genai_openrouter_key');
+  const savedModel = localStorage.getItem('genai_openrouter_model') || 'anthropic/claude-sonnet-5';
   
   if (savedTwelve) {
     const el = document.getElementById('twelvedata-key');
@@ -26,6 +37,18 @@ function loadSavedKeys() {
     const el = document.getElementById('openrouter-key');
     if (el) el.value = savedOpenRouter;
   }
+  const modelSelect = document.getElementById('model-select');
+  if (modelSelect) {
+    if ([...modelSelect.options].some(opt => opt.value === savedModel)) {
+      modelSelect.value = savedModel;
+    } else {
+      modelSelect.value = 'custom';
+      const customInput = document.getElementById('custom-model-input');
+      if (customInput) customInput.value = savedModel;
+      const customWrapper = document.getElementById('custom-model-wrapper');
+      if (customWrapper) customWrapper.style.display = 'flex';
+    }
+  }
   updateKeyStatusIndicator();
 }
 
@@ -34,6 +57,13 @@ function updateKeyStatusIndicator() {
   const openRouter = document.getElementById('openrouter-key')?.value.trim();
   const indicator = document.getElementById('keys-status-indicator');
   const feedIndicator = document.getElementById('feed-type-indicator');
+  const selectedModel = getSelectedModel();
+
+  // Update terminal info card model display
+  const modelInfoDisplay = document.querySelector('.terminal-info-card .info-row:nth-child(2) .info-val');
+  if (modelInfoDisplay) {
+    modelInfoDisplay.textContent = selectedModel;
+  }
   
   if (indicator) {
     if (twelve && openRouter) {
@@ -63,6 +93,31 @@ function setupEventListeners() {
       }
     });
   });
+
+  // Model select change listener
+  const modelSelect = document.getElementById('model-select');
+  if (modelSelect) {
+    modelSelect.addEventListener('change', () => {
+      const customWrapper = document.getElementById('custom-model-wrapper');
+      if (customWrapper) {
+        customWrapper.style.display = modelSelect.value === 'custom' ? 'flex' : 'none';
+      }
+      updateKeyStatusIndicator();
+      if (document.getElementById('remember-keys')?.checked) {
+        saveKeys();
+      }
+    });
+  }
+
+  const customModelInput = document.getElementById('custom-model-input');
+  if (customModelInput) {
+    customModelInput.addEventListener('input', () => {
+      updateKeyStatusIndicator();
+      if (document.getElementById('remember-keys')?.checked) {
+        saveKeys();
+      }
+    });
+  }
 
   // Password visibility toggles
   document.querySelectorAll('.toggle-pass-btn').forEach(btn => {
@@ -130,12 +185,13 @@ function setupEventListeners() {
     const ticker = document.getElementById('ticker').value.trim().toUpperCase();
     const twelveDataKey = document.getElementById('twelvedata-key').value.trim();
     const openRouterKey = document.getElementById('openrouter-key').value.trim();
+    const selectedModel = getSelectedModel();
 
     if (document.getElementById('remember-keys')?.checked) {
       saveKeys();
     }
 
-    renderLoading(ticker);
+    renderLoading(ticker, selectedModel);
 
     try {
       let priceData;
@@ -152,11 +208,11 @@ function setupEventListeners() {
       if (isDemoMode || !openRouterKey) {
         note = generateDemoResearchNote(ticker, priceData);
       } else {
-        note = await getResearchNote(ticker, priceData, openRouterKey);
+        note = await getResearchNote(ticker, priceData, openRouterKey, selectedModel);
       }
 
       window.currentStockData = priceData;
-      renderDashboard(ticker, priceData, note, isSimulated);
+      renderDashboard(ticker, priceData, note, isSimulated, selectedModel);
     } catch (err) {
       renderError(ticker, err.message);
     }
@@ -166,16 +222,18 @@ function setupEventListeners() {
 function saveKeys() {
   const twelve = document.getElementById('twelvedata-key')?.value.trim();
   const openRouter = document.getElementById('openrouter-key')?.value.trim();
+  const model = getSelectedModel();
   if (twelve) localStorage.setItem('genai_twelvedata_key', twelve);
   if (openRouter) localStorage.setItem('genai_openrouter_key', openRouter);
+  if (model) localStorage.setItem('genai_openrouter_model', model);
 }
 
-function renderLoading(ticker) {
+function renderLoading(ticker, modelName = 'anthropic/claude-sonnet-5') {
   results.innerHTML = `
     <div class="loading-state">
       <div class="spinner"></div>
       <p>Analyzing market structure for <strong>$${ticker}</strong>...</p>
-      <div class="loading-steps">Fetching historical bars & calculating technical indicators</div>
+      <div class="loading-steps">Fetching historical bars & generating analysis via <code>${modelName}</code></div>
     </div>
   `;
 }
@@ -225,7 +283,7 @@ async function fetchPriceData(ticker, apiKey) {
 }
 
 // OpenRouter Call
-async function getResearchNote(ticker, priceData, apiKey) {
+async function getResearchNote(ticker, priceData, apiKey, modelName = 'anthropic/claude-sonnet-5') {
   const first = priceData[0];
   const latest = priceData[priceData.length - 1];
   const pctChange = ((latest.close - first.close) / first.close) * 100;
@@ -243,14 +301,14 @@ async function getResearchNote(ticker, priceData, apiKey) {
     `change ${pctChange.toFixed(2)}% over ${priceData.length} trading days. ` +
     `SMA20: $${latestSma20}, SMA50: $${latestSma50}, RSI(14): ${latestRsi}.`;
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-sonnet-5',
+      model: modelName,
       max_tokens: 1500,
       messages: [
         { role: 'system', content: 'You are an institutional Wall Street research analyst specializing in technical analysis and quantitative trends. Provide direct, objective financial notes.' },
@@ -259,7 +317,26 @@ async function getResearchNote(ticker, priceData, apiKey) {
     })
   });
 
-  if (!response.ok) throw new Error(`OpenRouter API call failed. ${await readOpenRouterError(response)}`);
+  if (!response.ok && modelName === 'anthropic/claude-sonnet-5') {
+    console.warn(`Model ${modelName} returned HTTP ${response.status}. Retrying with anthropic/claude-3.5-sonnet...`);
+    response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        max_tokens: 1500,
+        messages: [
+          { role: 'system', content: 'You are an institutional Wall Street research analyst specializing in technical analysis and quantitative trends. Provide direct, objective financial notes.' },
+          { role: 'user', content: `${summary}\n\nWrite a 2-paragraph research note evaluating key technical signals, price action, and trend outlook for ${ticker}.` }
+        ]
+      })
+    });
+  }
+
+  if (!response.ok) throw new Error(`OpenRouter API call failed for model [${modelName}]: ${await readOpenRouterError(response)}`);
   const data = await response.json();
   return data.choices?.[0]?.message?.content ?? 'Research synthesis unavailable.';
 }
@@ -481,7 +558,7 @@ Quantitative indicator metrics highlight strong volume distribution during upwar
 }
 
 // Render Dashboard UI
-function renderDashboard(ticker, priceData, note, isSimulated) {
+function renderDashboard(ticker, priceData, note, isSimulated, modelName = 'anthropic/claude-sonnet-5') {
   const first = priceData[0];
   const latest = priceData[priceData.length - 1];
   const priceDiff = latest.close - first.close;
@@ -637,9 +714,10 @@ function renderDashboard(ticker, priceData, note, isSimulated) {
       <!-- AI Research Synthesis Note -->
       <div class="ai-note-card">
         <div class="ai-note-header">
-          <div class="ai-note-title">
+          <div class="ai-note-title" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            AI Financial Research Synthesis
+            <span>AI Financial Research Synthesis</span>
+            <span class="model-badge" style="font-size: 0.72rem; padding: 2px 8px; background: rgba(122,28,48,0.08); border: 1px solid rgba(122,28,48,0.2); border-radius: 4px; color: var(--accent-burgundy); font-family: var(--font-mono); font-weight: 600;">${modelName}</span>
           </div>
           <button class="copy-note-btn" id="copy-note-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>

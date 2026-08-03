@@ -219,6 +219,25 @@ form {
   gap: 1.25rem;
 }
 
+.terminal-select {
+  width: 100%;
+  background: var(--bg-panel-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-main);
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.terminal-select:focus {
+  border-color: var(--accent-burgundy);
+  box-shadow: 0 0 0 2px var(--accent-burgundy-glow);
+}
+
 .field-group {
   display: flex;
   flex-direction: column;

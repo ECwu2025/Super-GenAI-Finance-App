@@ -82,7 +82,24 @@
                   <input id="openrouter-key" name="openrouter-key" type="password" placeholder="sk-or-... (optional in Demo)" />
                   <button type="button" class="toggle-pass-btn" data-for="openrouter-key" title="Show/Hide">👁</button>
                 </div>
-                <p class="field-hint">Powers AI synthesis model (Claude/Gemini via OpenRouter)</p>
+                <p class="field-hint">Powers AI synthesis model</p>
+              </div>
+
+              <div class="field-group">
+                <label for="model-select">AI Model Selection</label>
+                <select id="model-select" class="terminal-select">
+                  <option value="anthropic/claude-sonnet-5" selected>Anthropic: Claude Sonnet 5 (anthropic/claude-sonnet-5)</option>
+                  <option value="anthropic/claude-3.5-sonnet">Anthropic: Claude 3.5 Sonnet (anthropic/claude-3.5-sonnet)</option>
+                  <option value="anthropic/claude-3-haiku">Anthropic: Claude 3 Haiku (anthropic/claude-3-haiku)</option>
+                  <option value="google/gemini-2.0-flash-001">Google: Gemini 2.0 Flash (google/gemini-2.0-flash-001)</option>
+                  <option value="openai/gpt-4o">OpenAI: GPT-4o (openai/gpt-4o)</option>
+                  <option value="custom">Custom Model Slug...</option>
+                </select>
+              </div>
+
+              <div class="field-group" id="custom-model-wrapper" style="display: none;">
+                <label for="custom-model-input">Custom Model Slug</label>
+                <input id="custom-model-input" type="text" placeholder="e.g. anthropic/claude-sonnet-5" value="anthropic/claude-sonnet-5" />
               </div>
 
               <div class="checkbox-group">
