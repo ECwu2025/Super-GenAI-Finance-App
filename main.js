@@ -250,7 +250,7 @@ async function getResearchNote(ticker, priceData, apiKey) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-3.5-sonnet',
+      model: 'anthropic/claude-sonnet-5',
       max_tokens: 1500,
       messages: [
         { role: 'system', content: 'You are an institutional Wall Street research analyst specializing in technical analysis and quantitative trends. Provide direct, objective financial notes.' },
