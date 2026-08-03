@@ -296,6 +296,83 @@ function calculateSMA(data, period) {
   return result;
 }
 
+function calculateEMA(data, period) {
+  const result = [];
+  const k = 2 / (period + 1);
+  let prevEma = null;
+
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1) {
+      result.push({ date: data[i].date, val: null });
+    } else if (i === period - 1) {
+      let sum = 0;
+      for (let j = 0; j < period; j++) {
+        sum += data[i - j].close;
+      }
+      prevEma = sum / period;
+      result.push({ date: data[i].date, val: prevEma });
+    } else {
+      const currentEma = (data[i].close * k) + (prevEma * (1 - k));
+      prevEma = currentEma;
+      result.push({ date: data[i].date, val: currentEma });
+    }
+  }
+  return result;
+}
+
+function calculateBollingerBands(data, period = 20, stdDevMultiplier = 2) {
+  const sma = calculateSMA(data, period);
+  const result = [];
+
+  for (let i = 0; i < data.length; i++) {
+    if (i < period - 1 || sma[i].val === null) {
+      result.push({ date: data[i].date, middle: null, upper: null, lower: null });
+    } else {
+      const mean = sma[i].val;
+      let varianceSum = 0;
+      for (let j = 0; j < period; j++) {
+        varianceSum += Math.pow(data[i - j].close - mean, 2);
+      }
+      const stdDev = Math.sqrt(varianceSum / period);
+      result.push({
+        date: data[i].date,
+        middle: mean,
+        upper: mean + (stdDevMultiplier * stdDev),
+        lower: mean - (stdDevMultiplier * stdDev)
+      });
+    }
+  }
+  return result;
+}
+
+function calculateMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
+  const fastEma = calculateEMA(data, fastPeriod);
+  const slowEma = calculateEMA(data, slowPeriod);
+
+  const macdLine = [];
+  for (let i = 0; i < data.length; i++) {
+    if (fastEma[i].val === null || slowEma[i].val === null) {
+      macdLine.push({ date: data[i].date, close: 0 });
+    } else {
+      macdLine.push({ date: data[i].date, close: fastEma[i].val - slowEma[i].val });
+    }
+  }
+
+  const signalEma = calculateEMA(macdLine, signalPeriod);
+
+  return data.map((d, i) => {
+    const macdVal = (fastEma[i].val !== null && slowEma[i].val !== null) ? (fastEma[i].val - slowEma[i].val) : null;
+    const signalVal = signalEma[i].val;
+    const histogram = (macdVal !== null && signalVal !== null) ? macdVal - signalVal : null;
+    return {
+      date: d.date,
+      macd: macdVal,
+      signal: signalVal,
+      histogram: histogram
+    };
+  });
+}
+
 function calculateRSI(data, period = 14) {
   const rsiValues = new Array(data.length).fill(null);
   if (data.length <= period) return rsiValues;
@@ -417,22 +494,42 @@ function renderDashboard(ticker, priceData, note, isSimulated) {
   const maxHigh = Math.max(...highs);
   const minLow = Math.min(...lows);
 
+  // Technical Calculations
   const sma20Arr = calculateSMA(priceData, 20);
   const sma50Arr = calculateSMA(priceData, 50);
+  const ema20Arr = calculateEMA(priceData, 20);
+  const bollingerArr = calculateBollingerBands(priceData, 20, 2);
+  const macdArr = calculateMACD(priceData, 12, 26, 9);
   const rsiArr = calculateRSI(priceData, 14);
 
   const latestSma20 = sma20Arr[sma20Arr.length - 1]?.val;
   const latestSma50 = sma50Arr[sma50Arr.length - 1]?.val;
+  const latestEma20 = ema20Arr[ema20Arr.length - 1]?.val;
+  const latestBollinger = bollingerArr[bollingerArr.length - 1];
+  const latestMacd = macdArr[macdArr.length - 1];
   const latestRsi = rsiArr[rsiArr.length - 1];
 
   let sentiment = 'neutral';
   let sentimentText = 'NEUTRAL HOLD';
-  if (latestRsi > 60 && isPositive) {
+  if (latestRsi > 60 && isPositive && latest.close > (latestSma20 || 0)) {
     sentiment = 'bullish';
     sentimentText = 'BULLISH OUTLOOK';
-  } else if (latestRsi < 40 && !isPositive) {
+  } else if (latestRsi < 40 && !isPositive && latest.close < (latestSma20 || 0)) {
     sentiment = 'bearish';
     sentimentText = 'BEARISH CAUTION';
+  }
+
+  // Calculate MACD Crossover signal
+  let macdSignalStr = 'Neutral';
+  if (latestMacd?.histogram !== null) {
+    macdSignalStr = latestMacd.histogram > 0 ? 'Bullish Expansion' : 'Bearish Divergence';
+  }
+
+  // Calculate Bollinger Band width
+  let bBandWidthStr = 'N/A';
+  if (latestBollinger?.upper && latestBollinger?.lower && latestBollinger?.middle) {
+    const widthPct = ((latestBollinger.upper - latestBollinger.lower) / latestBollinger.middle) * 100;
+    bBandWidthStr = `${widthPct.toFixed(1)}%`;
   }
 
   const tickerCompanyNames = {
@@ -490,9 +587,30 @@ function renderDashboard(ticker, priceData, note, isSimulated) {
           <span class="metric-card-sub">50-Day baseline</span>
         </div>
         <div class="metric-card">
+          <span class="metric-card-title">EMA (20)</span>
+          <span class="metric-card-val">$${latestEma20 ? latestEma20.toFixed(2) : 'N/A'}</span>
+          <span class="metric-card-sub">Exp moving avg</span>
+        </div>
+        <div class="metric-card">
           <span class="metric-card-title">RSI (14)</span>
           <span class="metric-card-val">${latestRsi ? latestRsi.toFixed(1) : 'N/A'}</span>
           <span class="metric-card-sub">${latestRsi > 70 ? 'Overbought' : latestRsi < 30 ? 'Oversold' : 'Neutral Range'}</span>
+        </div>
+      </div>
+
+      <!-- Technical Indicator Summary Cards -->
+      <div class="ai-highlights-grid" style="margin-bottom: 1.25rem;">
+        <div class="highlight-box">
+          <div class="highlight-title">Moving Average Alignment</div>
+          <div class="highlight-val">${latestSma20 && latestSma50 ? (latestSma20 >= latestSma50 ? 'Golden Bullish (SMA20 > 50)' : 'Death Bearish (SMA20 < 50)') : 'Calculating...'}</div>
+        </div>
+        <div class="highlight-box">
+          <div class="highlight-title">MACD Momentum Signal</div>
+          <div class="highlight-val">${macdSignalStr}</div>
+        </div>
+        <div class="highlight-box">
+          <div class="highlight-title">Bollinger Band Width</div>
+          <div class="highlight-val">${bBandWidthStr} (Vol Spurt)</div>
         </div>
       </div>
 
@@ -503,10 +621,12 @@ function renderDashboard(ticker, priceData, note, isSimulated) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
             Price Action History (90 Trading Days)
           </div>
-          <div>
+          <div id="chart-legend-items">
             <span class="legend-item"><span class="legend-color" style="background: #7a1c30;"></span> Close Price</span>
             <span class="legend-item"><span class="legend-color" style="background: #c59b27;"></span> SMA20</span>
             <span class="legend-item"><span class="legend-color" style="background: #2d6a4f;"></span> SMA50</span>
+            <span class="legend-item"><span class="legend-color" style="background: #2563eb;"></span> EMA20</span>
+            <span class="legend-item"><span class="legend-color" style="background: #9333ea;"></span> Bollinger</span>
           </div>
         </div>
         <div class="canvas-wrapper">
@@ -551,6 +671,13 @@ function renderDashboard(ticker, priceData, note, isSimulated) {
 
   // Render Canvas Chart
   renderChart(priceData);
+
+  // Bind indicator toggles to re-render chart dynamically
+  ['toggle-sma20', 'toggle-sma50', 'toggle-ema20', 'toggle-bollinger', 'toggle-volume'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      renderChart(priceData);
+    });
+  });
 
   // Bind copy button
   document.getElementById('copy-note-btn')?.addEventListener('click', () => {
@@ -597,14 +724,27 @@ function renderChart(data) {
 
   const showSma20 = document.getElementById('toggle-sma20')?.checked ?? true;
   const showSma50 = document.getElementById('toggle-sma50')?.checked ?? true;
+  const showEma20 = document.getElementById('toggle-ema20')?.checked ?? true;
+  const showBollinger = document.getElementById('toggle-bollinger')?.checked ?? true;
   const showVolume = document.getElementById('toggle-volume')?.checked ?? true;
 
   const sma20 = calculateSMA(data, 20);
   const sma50 = calculateSMA(data, 50);
+  const ema20 = calculateEMA(data, 20);
+  const bollinger = calculateBollingerBands(data, 20, 2);
 
   const prices = data.map(d => d.close);
-  const minPrice = Math.min(...prices) * 0.98;
-  const maxPrice = Math.max(...prices) * 1.02;
+  let minPrice = Math.min(...prices) * 0.98;
+  let maxPrice = Math.max(...prices) * 1.02;
+
+  if (showBollinger) {
+    const validUpper = bollinger.filter(b => b.upper !== null).map(b => b.upper);
+    const validLower = bollinger.filter(b => b.lower !== null).map(b => b.lower);
+    if (validUpper.length && validLower.length) {
+      maxPrice = Math.max(maxPrice, ...validUpper) * 1.01;
+      minPrice = Math.min(minPrice, ...validLower) * 0.99;
+    }
+  }
 
   const maxVol = Math.max(...data.map(d => d.volume));
 
@@ -660,6 +800,61 @@ function renderChart(data) {
   const getX = (i) => paddingLeft + (i / (data.length - 1)) * chartWidth;
   const getY = (val) => paddingTop + chartHeight - ((val - minPrice) / (maxPrice - minPrice)) * chartHeight;
 
+  // Draw Bollinger Bands (Envelope area fill + dotted bounds)
+  if (showBollinger) {
+    ctx.beginPath();
+    let started = false;
+    bollinger.forEach((b, i) => {
+      if (b.upper !== null) {
+        const x = getX(i);
+        const y = getY(b.upper);
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+    });
+
+    for (let i = bollinger.length - 1; i >= 0; i--) {
+      if (bollinger[i].lower !== null) {
+        ctx.lineTo(getX(i), getY(bollinger[i].lower));
+      }
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(147, 51, 234, 0.08)';
+    ctx.fill();
+
+    // Upper Line
+    ctx.beginPath();
+    started = false;
+    bollinger.forEach((b, i) => {
+      if (b.upper !== null) {
+        const x = getX(i);
+        const y = getY(b.upper);
+        if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
+      }
+    });
+    ctx.strokeStyle = 'rgba(147, 51, 234, 0.5)';
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Lower Line
+    ctx.beginPath();
+    started = false;
+    bollinger.forEach((b, i) => {
+      if (b.lower !== null) {
+        const x = getX(i);
+        const y = getY(b.lower);
+        if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
+      }
+    });
+    ctx.stroke();
+    ctx.setLineDash([]); // Reset line dash
+  }
+
   // Draw Area Fill Gradient under main price line
   const gradient = ctx.createLinearGradient(0, paddingTop, 0, paddingTop + chartHeight);
   gradient.addColorStop(0, 'rgba(122, 28, 48, 0.18)');
@@ -675,6 +870,27 @@ function renderChart(data) {
   ctx.closePath();
   ctx.fillStyle = gradient;
   ctx.fill();
+
+  // Draw EMA 20 line
+  if (showEma20) {
+    ctx.beginPath();
+    let started = false;
+    ema20.forEach((pt, i) => {
+      if (pt.val !== null) {
+        const x = getX(i);
+        const y = getY(pt.val);
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+    });
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
 
   // Draw SMA 50 line
   if (showSma50) {

@@ -1,6 +1,6 @@
 {
-  "name": "GenAI Finance App",
-  "description": "Financial research assistant application for stock market ticker price history and AI notes",
+  "name": "Financial Terminal",
+  "description": "GenAI Financial Terminal with technical analysis representations, SMA, EMA, RSI, and AI research notes",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
