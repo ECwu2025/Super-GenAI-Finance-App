@@ -3,41 +3,165 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GenAI Finance App</title>
+  <title>GenAI Financial Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css" />
 </head>
-<body>
+<body class="beige-burgundy-terminal">
   <header class="app-header">
-    <h1>GenAI Finance App</h1>
-    <p class="subtitle">Template starting point</p>
+    <div class="header-content">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+            <polyline points="16 7 22 7 22 13"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1>GenAI Financial Terminal</h1>
+          <p class="subtitle">AI-POWERED EQUITY RESEARCH & TECHNICAL ANALYSIS</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="status-badge live-status"><span class="pulse-dot"></span> Live Market Engine</span>
+        <button id="demo-mode-toggle" type="button" class="demo-btn" title="Toggle Demo Data Mode">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+          Demo Mode: <span id="demo-status-text">OFF</span>
+        </button>
+      </div>
+    </div>
   </header>
 
   <main class="app-main">
-    <section class="panel">
-      <form id="ticker-form">
-        <label for="ticker">Ticker</label>
-        <input id="ticker" name="ticker" type="text" placeholder="e.g. AAPL, MSFT, NVDA" required />
+    <aside class="sidebar-panel">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Research Target
+          </h2>
+        </div>
+        <form id="ticker-form">
+          <div class="field-group">
+            <label for="ticker">Stock Ticker Symbol</label>
+            <div class="input-with-icon">
+              <span class="ticker-prefix">$</span>
+              <input id="ticker" name="ticker" type="text" placeholder="e.g. AAPL, NVDA, TSLA" value="NVDA" required autocomplete="off" />
+            </div>
+            
+            <div class="preset-tickers">
+              <span class="presets-label">Popular:</span>
+              <button type="button" class="preset-btn" data-ticker="NVDA">NVDA</button>
+              <button type="button" class="preset-btn" data-ticker="AAPL">AAPL</button>
+              <button type="button" class="preset-btn" data-ticker="MSFT">MSFT</button>
+              <button type="button" class="preset-btn" data-ticker="TSLA">TSLA</button>
+              <button type="button" class="preset-btn" data-ticker="AMZN">AMZN</button>
+            </div>
+          </div>
 
-        <label for="twelvedata-key">Twelve Data API key</label>
-        <input id="twelvedata-key" name="twelvedata-key" type="password" placeholder="Twelve Data key" required />
-        <p class="field-hint">The free Twelve Data plan covers all US stocks and ETFs, limited to 8 requests/minute and 800/day. Get a free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a>.</p>
+          <div class="accordion-section">
+            <div class="accordion-header" id="api-keys-toggle">
+              <span>API Credentials</span>
+              <span class="keys-status-indicator" id="keys-status-indicator">Optional in Demo</span>
+            </div>
+            <div class="accordion-body">
+              <div class="field-group">
+                <label for="twelvedata-key">Twelve Data API Key</label>
+                <div class="input-password-wrapper">
+                  <input id="twelvedata-key" name="twelvedata-key" type="password" placeholder="Key (optional in Demo)" />
+                  <button type="button" class="toggle-pass-btn" data-for="twelvedata-key" title="Show/Hide">👁</button>
+                </div>
+                <p class="field-hint">US Equities & ETFs data. Free key at <a href="https://twelvedata.com/pricing" target="_blank" rel="noopener">twelvedata.com</a></p>
+              </div>
 
-        <label for="openrouter-key">OpenRouter API key</label>
-        <input id="openrouter-key" name="openrouter-key" type="password" placeholder="sk-or-..." required />
+              <div class="field-group">
+                <label for="openrouter-key">OpenRouter API Key</label>
+                <div class="input-password-wrapper">
+                  <input id="openrouter-key" name="openrouter-key" type="password" placeholder="sk-or-... (optional in Demo)" />
+                  <button type="button" class="toggle-pass-btn" data-for="openrouter-key" title="Show/Hide">👁</button>
+                </div>
+                <p class="field-hint">Powers AI synthesis model (Claude/Gemini via OpenRouter)</p>
+              </div>
 
-        <button type="submit">Analyze</button>
-      </form>
-    </section>
+              <div class="checkbox-group">
+                <label class="custom-checkbox">
+                  <input type="checkbox" id="remember-keys" checked />
+                  <span class="checkmark"></span>
+                  Save keys locally in browser session
+                </label>
+              </div>
+            </div>
+          </div>
 
-    <section class="panel" id="results">
-      <p class="placeholder">Results will appear here once you wire up data fetching and your LLM call.</p>
+          <div class="field-group">
+            <label>Technical Indicators</label>
+            <div class="indicators-toggles">
+              <label class="toggle-chip active">
+                <input type="checkbox" id="toggle-sma20" checked /> SMA 20
+              </label>
+              <label class="toggle-chip active">
+                <input type="checkbox" id="toggle-sma50" checked /> SMA 50
+              </label>
+              <label class="toggle-chip active">
+                <input type="checkbox" id="toggle-volume" checked /> Volume Bars
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="analyze-btn" class="primary-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span>Run AI Research Analysis</span>
+          </button>
+        </form>
+      </div>
+
+      <div class="terminal-info-card">
+        <div class="info-row">
+          <span class="info-label">LATENCY</span>
+          <span class="info-val green">18ms</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">MODEL</span>
+          <span class="info-val">Claude 3.5 Sonnet / Gemini</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">FEED</span>
+          <span class="info-val" id="feed-type-indicator">TwelveData / Simulated</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="main-content">
+      <div class="panel results-panel" id="results">
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+          </div>
+          <h3>Terminal Ready</h3>
+          <p>Select a stock symbol and click <strong>Run AI Research Analysis</strong> to fetch time-series market price history, technical indicator metrics, and AI synthesis notes.</p>
+          <div class="quick-start">
+            <button type="button" class="secondary-btn" id="quick-demo-btn">
+              ⚡ Quick Run with Demo Data
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
   <footer class="app-footer">
-    <p>Replace this scaffold with your own build. See README.md for setup notes.</p>
+    <div class="footer-content">
+      <p>GenAI Financial Terminal &bull; Confidential Research Engine &bull; Educational & Quantitative Analysis</p>
+      <div class="footer-links">
+        <a href="https://twelvedata.com" target="_blank" rel="noopener">Twelve Data</a>
+        <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter AI</a>
+      </div>
+    </div>
   </footer>
 
   <script type="module" src="./main.js"></script>
 </body>
 </html>
+
