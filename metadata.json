@@ -1,6 +1,6 @@
 {
   "name": "Financial Terminal",
-  "description": "GenAI Financial Terminal with technical analysis representations, SMA, EMA, RSI, and AI research notes",
+  "description": "AI-Powered Equity Research & Technical Terminal featuring OHLC Candlesticks, Fundamental KPIs Grid, MACD, RSI, ADX, Stochastic, VWAP, RVOL, Fibonacci Retracements, Peak Drawdown %, Benchmark Comparison, and Aggregate Signal Score.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

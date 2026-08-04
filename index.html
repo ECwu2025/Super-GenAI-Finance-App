@@ -25,7 +25,8 @@
         </div>
       </div>
       <div class="header-badges">
-        <span class="status-badge live-status"><span class="pulse-dot"></span> Live Market Engine</span>
+        <span class="status-badge market-status-badge" id="market-status-badge"><span class="pulse-dot"></span> MARKET OPEN</span>
+        <span class="status-badge live-status" id="feed-status-badge">Live Market Engine</span>
         <button id="demo-mode-toggle" type="button" class="demo-btn" title="Toggle Demo Data Mode">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
           Demo Mode: <span id="demo-status-text">OFF</span>
@@ -113,22 +114,61 @@
           </div>
 
           <div class="field-group">
-            <label>Technical Indicators</label>
+            <label class="section-label-with-tip">
+              <span>Chart Style & Overlays</span>
+              <span class="info-tip-btn" title="Toggle overlay indicators rendered directly on price action candles">ⓘ</span>
+            </label>
             <div class="indicators-toggles">
-              <label class="toggle-chip active">
+              <label class="toggle-chip active" title="Candlestick (OHLC) mode vs Line mode">
+                <input type="checkbox" id="toggle-candlestick" checked /> Candlesticks
+              </label>
+              <label class="toggle-chip active" title="Simple Moving Average (20-Period)">
                 <input type="checkbox" id="toggle-sma20" checked /> SMA 20
               </label>
-              <label class="toggle-chip active">
+              <label class="toggle-chip active" title="Simple Moving Average (50-Period)">
                 <input type="checkbox" id="toggle-sma50" checked /> SMA 50
               </label>
-              <label class="toggle-chip active">
+              <label class="toggle-chip active" title="Exponential Moving Average (20-Period)">
                 <input type="checkbox" id="toggle-ema20" checked /> EMA 20
               </label>
-              <label class="toggle-chip active">
+              <label class="toggle-chip active" title="Bollinger Bands (20-Period, 2 StdDev)">
                 <input type="checkbox" id="toggle-bollinger" checked /> Bollinger
               </label>
-              <label class="toggle-chip active">
-                <input type="checkbox" id="toggle-volume" checked /> Volume
+              <label class="toggle-chip active" title="Volume Weighted Average Price">
+                <input type="checkbox" id="toggle-vwap" checked /> VWAP
+              </label>
+              <label class="toggle-chip active" title="Auto-calculated Fibonacci Retracement Levels">
+                <input type="checkbox" id="toggle-fibonacci" checked /> Fib Levels
+              </label>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="section-label-with-tip">
+              <span>Sub-Chart Oscillator Panels</span>
+              <span class="info-tip-btn" title="Toggle synchronized sub-chart panels below main price chart">ⓘ</span>
+            </label>
+            <div class="indicators-toggles">
+              <label class="toggle-chip active" title="Trading Volume & Relative Volume (RVOL)">
+                <input type="checkbox" id="toggle-volume" checked /> Volume & RVOL
+              </label>
+              <label class="toggle-chip active" title="Relative Strength Index (14-Period)">
+                <input type="checkbox" id="toggle-rsi" checked /> RSI (14)
+              </label>
+              <label class="toggle-chip active" title="Moving Average Convergence Divergence (12, 26, 9)">
+                <input type="checkbox" id="toggle-macd" checked /> MACD
+              </label>
+              <label class="toggle-chip active" title="Stochastic Oscillator (%K 14, %D 3)">
+                <input type="checkbox" id="toggle-stochastic" checked /> Stochastic
+              </label>
+              <label class="toggle-chip active" title="Average Directional Index (14-Period Trend Strength)">
+                <input type="checkbox" id="toggle-adx" checked /> ADX (14)
+              </label>
+              <label class="toggle-chip active" title="Peak Drawdown % (Decline from rolling all-time high)">
+                <input type="checkbox" id="toggle-drawdown" checked /> Drawdown %
+              </label>
+              <label class="toggle-chip active" title="Relative Performance vs S&P 500 Benchmark (Normalized Base 100)">
+                <input type="checkbox" id="toggle-benchmark" checked /> vs SPY Benchmark
               </label>
             </div>
           </div>
